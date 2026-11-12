@@ -1,0 +1,11 @@
+[package]
+name = "wlmg-hidpp"
+description = "Logitech HID++ input adapter: diverts the MX Master gesture button over hidraw"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+wlmg-core.workspace = true
+log.workspace = true
+thiserror.workspace = true

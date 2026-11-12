@@ -1,0 +1,4 @@
+# Grant the logged-in seat user access to Logitech HID++ interfaces (receivers over USB, mice over Bluetooth).
+# Must sort before 73-seat-late.rules for uaccess to apply.
+SUBSYSTEM=="hidraw", KERNELS=="0003:046D:*", TAG+="uaccess"
+SUBSYSTEM=="hidraw", KERNELS=="0005:046D:*", TAG+="uaccess"

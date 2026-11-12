@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = ["crates/*"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+wlmg-core = { path = "crates/core" }
+wlmg-hidpp = { path = "crates/hidpp" }
+wlmg-actions = { path = "crates/actions" }
+anyhow = "1"
+env_logger = { version = "0.11", default-features = false, features = ["auto-color", "humantime"] }
+log = "0.4"
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+toml = "0.9"
+
+[profile.release]
+lto = true
+codegen-units = 1
+strip = true

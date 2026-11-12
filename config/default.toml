@@ -1,0 +1,60 @@
+# wl-mx-gesture configuration.
+# Copy to ~/.config/wl-mx-gesture/config.toml; this built-in copy is used when that file is missing.
+#
+# Distances are raw mouse units (roughly sensor counts), durations are milliseconds.
+# Actions, translated for the running compositor (legacy and Lua Hyprland are auto-detected):
+#   { workspace = "3" | "e+1" | "name" }   { move_to_workspace = "…" }   { toggle_special = "name" }
+#   "close_window"   "toggle_floating"   "fullscreen"   "maximize"
+#   { exec = "shell command" }
+#   { hyprland = "…" } raw dispatch sent verbatim, in the syntax of your Hyprland version
+#
+# Modes: gestures and the wheel work together. For wheel only, set hold_ms = 0 and
+# leave tap/swipe unbound; for gestures only, bind `hold` to an action instead of a wheel.
+
+[gesture]
+swipe_threshold = 60
+dead_zone = 40
+hold_ms = 700
+double_tap_ms = 250
+
+[bindings]
+# tap = { exec = "fuzzel" }
+# double_tap = "toggle_floating"
+hold = { wheel = "main" }
+
+[bindings.swipe]
+left = { workspace = "e-1" }
+right = { workspace = "e+1" }
+up = "maximize"
+down = { toggle_special = "magic" }
+
+# Slots are laid out clockwise, the first one at the top.
+[[wheel.main.slots]]
+label = "Close"
+icon = "window-close"
+action = "close_window"
+
+[[wheel.main.slots]]
+label = "Move →"
+icon = "go-next"
+action = { move_to_workspace = "e+1" }
+
+[[wheel.main.slots]]
+label = "Float"
+icon = "window-restore"
+action = "toggle_floating"
+
+[[wheel.main.slots]]
+label = "Fullscreen"
+icon = "view-fullscreen"
+action = "fullscreen"
+
+[[wheel.main.slots]]
+label = "Scratchpad"
+icon = "view-grid"
+action = { move_to_workspace = "special:magic" }
+
+[[wheel.main.slots]]
+label = "Move ←"
+icon = "go-previous"
+action = { move_to_workspace = "e-1" }
