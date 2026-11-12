@@ -9,6 +9,8 @@ license.workspace = true
 wlmg-core.workspace = true
 wlmg-hidpp.workspace = true
 wlmg-actions.workspace = true
+wlmg-overlay.workspace = true
 anyhow.workspace = true
 env_logger.workspace = true
 log.workspace = true
+ctrlc = { version = "3.5.2", features = ["termination"] }

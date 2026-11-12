@@ -11,6 +11,7 @@ license = "MIT"
 wlmg-core = { path = "crates/core" }
 wlmg-hidpp = { path = "crates/hidpp" }
 wlmg-actions = { path = "crates/actions" }
+wlmg-overlay = { path = "crates/overlay" }
 anyhow = "1"
 env_logger = { version = "0.11", default-features = false, features = ["auto-color", "humantime"] }
 log = "0.4"

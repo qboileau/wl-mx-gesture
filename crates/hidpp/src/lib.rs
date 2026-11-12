@@ -8,14 +8,16 @@ mod report;
 
 use std::collections::{HashMap, HashSet};
 use std::fmt;
-use std::io;
+use std::fs::File;
+use std::io::{self, Write};
 use std::iter;
 use std::path::PathBuf;
 use std::sync::mpsc::Sender;
+use std::sync::{Arc, Mutex, PoisonError};
 use std::thread;
 use std::time::Duration;
 
-use log::{debug, warn};
+use log::{debug, info, warn};
 use wlmg_core::gesture::Input;
 
 use channel::Channel;
@@ -53,7 +55,7 @@ pub struct ProbedDevice {
     pub controls: Vec<Control>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct DeviceId {
     pub path: PathBuf,
     /// HID++ device index: 1..=6 behind a receiver, 0xFF when directly connected.
@@ -74,17 +76,51 @@ pub enum Event {
     Lost(DeviceId),
 }
 
+/// Gesture buttons currently diverted, to hand them back to the system before exiting:
+/// a diversion outlives the process and would leave the button dead until the mouse reconnects.
+#[derive(Clone, Default)]
+pub struct Diversions(Arc<Mutex<HashMap<DeviceId, Restore>>>);
+
+struct Restore {
+    writer: File,
+    feature_index: u8,
+}
+
+impl Diversions {
+    pub fn release(&self) {
+        for (device, mut restore) in self.0.lock().unwrap_or_else(PoisonError::into_inner).drain() {
+            match restore
+                .writer
+                .write_all(&device::undivert_gesture_button(device.index, restore.feature_index).encode())
+            {
+                Ok(()) => info!("{device}: gesture button released"),
+                Err(error) => warn!("{device}: cannot release gesture button: {error}"),
+            }
+        }
+    }
+
+    fn add(&self, device: DeviceId, restore: Restore) {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner).insert(device, restore);
+    }
+
+    fn remove(&self, device: &DeviceId) {
+        self.0.lock().unwrap_or_else(PoisonError::into_inner).remove(device);
+    }
+}
+
 /// Watches for Logitech devices forever, sending their gesture button events to `events`.
-pub fn watch(events: Sender<Event>) {
+pub fn watch(events: Sender<Event>) -> Diversions {
+    let diversions = Diversions::default();
+    let watched = diversions.clone();
     thread::spawn(move || {
         let mut known = HashSet::new();
         loop {
             let nodes = hidraw::logitech_nodes();
             for node in nodes.iter().filter(|node| !known.contains(&node.id)).cloned() {
-                let events = events.clone();
+                let (events, diversions) = (events.clone(), watched.clone());
                 thread::spawn(move || {
                     let path = node.path.clone();
-                    match serve(node, events) {
+                    match serve(node, events, diversions) {
                         Error::Disconnected => debug!("{}: gone", path.display()),
                         error => warn!("{}: {error}", path.display()),
                     }
@@ -94,6 +130,7 @@ pub fn watch(events: Sender<Event>) {
             thread::sleep(RESCAN_INTERVAL);
         }
     });
+    diversions
 }
 
 pub fn probe() -> Vec<ProbedDevice> {
@@ -132,14 +169,15 @@ struct Session {
     channel: Channel,
     events: Sender<Event>,
     diverted: HashMap<u8, Diverted>,
+    diversions: Diversions,
 }
 
-fn serve(node: Node, events: Sender<Event>) -> Error {
+fn serve(node: Node, events: Sender<Event>, diversions: Diversions) -> Error {
     let channel = match Channel::open(&node.path) {
         Ok(channel) => channel,
         Err(error) => return error,
     };
-    let mut session = Session { node, channel, events, diverted: HashMap::new() };
+    let mut session = Session { node, channel, events, diverted: HashMap::new(), diversions };
     session.start();
     let error = session.relay();
     let lost: Vec<u8> = session.diverted.keys().copied().collect();
@@ -170,6 +208,10 @@ impl Session {
         match self.channel.divert_gesture_button(index) {
             Ok(feature_index) => {
                 self.diverted.insert(index, Diverted { feature_index, held: false });
+                match self.channel.writer() {
+                    Ok(writer) => self.diversions.add(self.device(index), Restore { writer, feature_index }),
+                    Err(error) => warn!("{}: button will stay diverted after exit: {error}", self.device(index)),
+                }
                 self.emit(Event::Ready(self.device(index)));
             }
             Err(error) => debug!("{}: {error}", self.device(index)),
@@ -178,6 +220,7 @@ impl Session {
 
     fn lose(&mut self, index: u8) {
         if self.diverted.remove(&index).is_some() {
+            self.diversions.remove(&self.device(index));
             self.emit(Event::Lost(self.device(index)));
         }
     }

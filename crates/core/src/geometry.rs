@@ -71,6 +71,16 @@ pub fn slot_at(pointer: Vector, slots: NonZeroUsize, dead_zone: f32) -> Option<u
     Some(((angle + sector / 2.0) / sector) as usize % slots.get())
 }
 
+/// Angle of the middle of `slot`, clockwise from "up", in radians: the inverse of [`slot_at`].
+pub fn slot_angle(slot: usize, slots: NonZeroUsize) -> f32 {
+    TAU * slot as f32 / slots.get() as f32
+}
+
+/// Unit vector pointing at `angle` measured clockwise from "up".
+pub fn direction(angle: f32) -> Vector {
+    Vector::new(angle.sin(), -angle.cos())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -92,6 +102,13 @@ mod tests {
     fn slot_zero_wraps_around_up() {
         assert_eq!(slot_at(Vector::new(-5.0, -20.0), SIX, DEAD_ZONE), Some(0));
         assert_eq!(slot_at(Vector::new(5.0, -20.0), SIX, DEAD_ZONE), Some(0));
+    }
+
+    #[test]
+    fn slot_angle_points_back_at_its_slot() {
+        for slot in 0..SIX.get() {
+            assert_eq!(slot_at(direction(slot_angle(slot, SIX)) * 20.0, SIX, DEAD_ZONE), Some(slot));
+        }
     }
 
     #[test]

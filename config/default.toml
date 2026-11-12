@@ -8,8 +8,9 @@
 #   { exec = "shell command" }
 #   { hyprland = "…" } raw dispatch sent verbatim, in the syntax of your Hyprland version
 #
-# Modes: gestures and the wheel work together. For wheel only, set hold_ms = 0 and
-# leave tap/swipe unbound; for gestures only, bind `hold` to an action instead of a wheel.
+# `double_tap` and `hold` take an action or `{ wheel = "name" }`. A double-tap wheel opens on the
+# second press and runs the slot you point at when you release; movement between the taps is ignored.
+# Hold still `hold_ms` to fire `hold`; move past `swipe_threshold` while pressed to swipe.
 
 [gesture]
 swipe_threshold = 60
@@ -19,8 +20,8 @@ double_tap_ms = 250
 
 [bindings]
 # tap = { exec = "fuzzel" }
-# double_tap = "toggle_floating"
-hold = { wheel = "main" }
+double_tap = { wheel = "main" }
+# hold = "toggle_floating"
 
 [bindings.swipe]
 left = { workspace = "e-1" }
@@ -58,3 +59,17 @@ action = { move_to_workspace = "special:magic" }
 label = "Move ←"
 icon = "go-previous"
 action = { move_to_workspace = "e-1" }
+
+# Look of the wheel; sizes are logical pixels, colours #rrggbb or #rrggbbaa.
+[style]
+outer_radius = 150
+inner_radius = 50
+background = "#1e1e2ee6"
+highlight = "#89b4fa"
+text = "#cdd6f4"
+highlighted_text = "#1e1e2e"
+# font = "Inter"
+font_size = 14
+icon_size = 32
+# icon_theme = "Papirus-Dark"
+tint_icons = true

@@ -70,9 +70,7 @@ impl Channel {
     /// Returns the feature index the button and raw movement events will be reported on.
     pub fn divert_gesture_button(&mut self, device_index: u8) -> Result<u8, Error> {
         let feature = self.feature_index(device_index, REPROG_CONTROLS_V4)?;
-        let [cid_high, cid_low] = GESTURE_BUTTON.to_be_bytes();
-        let flags = DIVERT | DIVERT_VALID | RAW_XY | RAW_XY_VALID;
-        self.request(Report::feature_call(device_index, feature, SET_CONTROL_REPORTING, &[cid_high, cid_low, flags]))?;
+        self.request(gesture_button_reporting(device_index, feature, DIVERT | DIVERT_VALID | RAW_XY | RAW_XY_VALID))?;
         Ok(feature)
     }
 
@@ -101,6 +99,16 @@ impl Channel {
         })
         .map(drop)
     }
+}
+
+/// Hands the gesture button back to the system, so it acts as a regular button again.
+pub(crate) fn undivert_gesture_button(device_index: u8, feature_index: u8) -> Report {
+    gesture_button_reporting(device_index, feature_index, DIVERT_VALID | RAW_XY_VALID)
+}
+
+fn gesture_button_reporting(device_index: u8, feature_index: u8, flags: u8) -> Report {
+    let [cid_high, cid_low] = GESTURE_BUTTON.to_be_bytes();
+    Report::feature_call(device_index, feature_index, SET_CONTROL_REPORTING, &[cid_high, cid_low, flags])
 }
 
 /// `Some(linked)` when the report is a receiver's device (dis)connection notification.

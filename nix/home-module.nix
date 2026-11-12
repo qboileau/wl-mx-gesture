@@ -27,7 +27,7 @@ in
       example = lib.literalExpression ''
         {
           bindings.swipe.left.hyprland = "workspace e-1";
-          bindings.hold.wheel = "main";
+          bindings.double_tap.wheel = "main";
           wheel.main.slots = [
             { label = "Close"; icon = "window-close"; action.hyprland = "killactive"; }
           ];

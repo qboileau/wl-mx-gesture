@@ -69,6 +69,10 @@ impl Channel {
         }
     }
 
+    pub fn writer(&self) -> std::io::Result<File> {
+        self.writer.try_clone()
+    }
+
     pub fn next_report(&self) -> Result<Report, Error> {
         self.reports.recv().map_err(|_| Error::Disconnected)
     }

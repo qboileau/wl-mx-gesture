@@ -5,12 +5,14 @@ use serde::Deserialize;
 
 use crate::action::Action;
 use crate::geometry::Direction;
-use crate::gesture::{self, Gesture, Hold, HoldOutcome, Output};
+use crate::gesture::{self, Gesture, Outcome, Output, Timed, Trigger};
+use crate::style::Style;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Profile {
     pub gesture: GestureSettings,
     pub bindings: Bindings,
+    pub style: Style,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -26,9 +28,9 @@ pub struct GestureSettings {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Bindings {
     pub tap: Option<Action>,
-    pub double_tap: Option<Action>,
+    pub double_tap: Option<Binding>,
     pub swipe: SwipeBindings,
-    pub hold: Option<HoldBinding>,
+    pub hold: Option<Binding>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Deserialize)]
@@ -52,9 +54,19 @@ impl SwipeBindings {
 }
 
 #[derive(Debug, Clone, PartialEq)]
-pub enum HoldBinding {
+pub enum Binding {
     Action(Action),
     Wheel(Wheel),
+}
+
+impl Binding {
+    fn timed(&self, duration: Duration) -> Timed {
+        let outcome = match self {
+            Binding::Action(_) => Outcome::Gesture,
+            Binding::Wheel(wheel) => Outcome::Wheel { slots: wheel.slot_count() },
+        };
+        Timed { duration, outcome }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -90,27 +102,43 @@ impl Profile {
         gesture::Settings {
             swipe_threshold: self.gesture.swipe_threshold,
             dead_zone: self.gesture.dead_zone,
-            hold: self.bindings.hold.as_ref().map(|binding| Hold {
-                after: self.gesture.hold_after,
-                outcome: match binding {
-                    HoldBinding::Action(_) => HoldOutcome::Gesture,
-                    HoldBinding::Wheel(wheel) => HoldOutcome::Wheel { slots: wheel.slot_count() },
-                },
-            }),
-            double_tap: self.bindings.double_tap.as_ref().map(|_| self.gesture.double_tap_within),
+            hold: self.bindings.hold.as_ref().map(|binding| binding.timed(self.gesture.hold_after)),
+            double_tap: self.bindings.double_tap.as_ref().map(|binding| binding.timed(self.gesture.double_tap_within)),
         }
     }
 
-    pub fn action_for(&self, output: Output) -> Option<&Action> {
-        match (output, &self.bindings.hold) {
-            (Output::Gesture(Gesture::Tap), _) => self.bindings.tap.as_ref(),
-            (Output::Gesture(Gesture::DoubleTap), _) => self.bindings.double_tap.as_ref(),
-            (Output::Gesture(Gesture::Swipe(direction)), _) => self.bindings.swipe.get(direction),
-            (Output::Gesture(Gesture::Hold), Some(HoldBinding::Action(action))) => Some(action),
-            (Output::WheelSelected(slot), Some(HoldBinding::Wheel(wheel))) => {
-                wheel.slots().get(slot).map(|slot| &slot.action)
-            }
+    pub fn wheel(&self, trigger: Trigger) -> Option<&Wheel> {
+        match self.binding(trigger) {
+            Some(Binding::Wheel(wheel)) => Some(wheel),
             _ => None,
+        }
+    }
+
+    pub fn wheels(&self) -> impl Iterator<Item = &Wheel> {
+        [Trigger::DoubleTap, Trigger::Hold].into_iter().filter_map(|trigger| self.wheel(trigger))
+    }
+
+    pub fn action_for(&self, output: Output) -> Option<&Action> {
+        let bound_action = |trigger| match self.binding(trigger) {
+            Some(Binding::Action(action)) => Some(action),
+            _ => None,
+        };
+        match output {
+            Output::Gesture(Gesture::Tap) => self.bindings.tap.as_ref(),
+            Output::Gesture(Gesture::DoubleTap) => bound_action(Trigger::DoubleTap),
+            Output::Gesture(Gesture::Hold) => bound_action(Trigger::Hold),
+            Output::Gesture(Gesture::Swipe(direction)) => self.bindings.swipe.get(direction),
+            Output::WheelSelected(trigger, slot) => {
+                self.wheel(trigger).and_then(|wheel| wheel.slots().get(slot)).map(|slot| &slot.action)
+            }
+            Output::WheelOpened(_) | Output::WheelHovered(_) | Output::WheelCancelled => None,
+        }
+    }
+
+    fn binding(&self, trigger: Trigger) -> Option<&Binding> {
+        match trigger {
+            Trigger::DoubleTap => self.bindings.double_tap.as_ref(),
+            Trigger::Hold => self.bindings.hold.as_ref(),
         }
     }
 }

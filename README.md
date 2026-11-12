@@ -4,8 +4,8 @@ Gestures and an action wheel for the thumb gesture button of the Logitech MX Mas
 on any Wayland compositor.
 
 - **Gestures**: tap, double tap, hold, swipe up/down/left/right while holding the button.
-- **Wheel**: hold still to open a wheel of actions around the cursor, move towards a slot, release to run it
-  (release in the centre to cancel).
+- **Wheel**: double tap (default) or hold still to open a wheel of actions around the cursor; keep the button pressed,
+  move towards a slot and release to run it (release in the centre to cancel).
 - **Actions**: workspace switching, moving/closing/floating/fullscreen windows, special workspaces, shell commands,
   or raw Hyprland dispatches. Hyprland's legacy and Lua (0.55+) IPC syntaxes are auto-detected.
 
@@ -13,8 +13,14 @@ The button is read directly over Logitech's HID++ protocol (`/dev/hidraw*`), thr
 Bluetooth, so no compositor support is needed for input. While the button is held the cursor stays frozen and the
 mouse movement drives the gesture.
 
-> Status: early. Gestures run actions; the wheel overlay (layer-shell) and the configuration GUI are not built yet.
-> See [docs/PLAN.md](docs/PLAN.md).
+The wheel is drawn on a wlr-layer-shell overlay (Hyprland, Sway, niri, KDE, river, labwc, Wayfire, COSMIC…; not
+GNOME), at the cursor and kept on screen near edges, with labels, icons from your icon theme and a `[style]`.
+
+> Status: early. Gestures, actions and the wheel work; sub-wheels, hot-reload and the configuration GUI are not built
+> yet. See [docs/PLAN.md](docs/PLAN.md).
+
+On Hyprland, layers fade in by default; to show the wheel instantly add a layer rule for the `wl-mx-gesture`
+namespace that disables animations.
 
 ## Install (Nix flake)
 
@@ -55,6 +61,7 @@ It documents every option.
 ```sh
 wl-mx-gesture --probe          # list detected devices and their reprogrammable controls (0x00c3 = gesture button)
 wl-mx-gesture --test           # print mouse status and recognised gestures, without running actions
+wl-mx-gesture --preview        # show the wheel with its style, cycling the highlight (style tuning)
 RUST_LOG=debug wl-mx-gesture   # trace HID++ decisions
 ```
 
