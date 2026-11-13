@@ -4,6 +4,7 @@
 # Distances are raw mouse units (roughly sensor counts), durations are milliseconds.
 # Actions, translated for the running compositor (legacy and Lua Hyprland are auto-detected):
 #   { workspace = "3" | "e+1" | "name" }   { move_to_workspace = "…" }   { toggle_special = "name" }
+#   { adjacent_workspace = "left" | "right" }   { move_to_adjacent_workspace = "left" | "right" }
 #   "close_window"   "toggle_floating"   "fullscreen"   "maximize"
 #   { exec = "shell command" }
 #   { hyprland = "…" } raw dispatch sent verbatim, in the syntax of your Hyprland version
@@ -18,14 +19,23 @@ dead_zone = 40
 hold_ms = 700
 double_tap_ms = 250
 
+# How `adjacent_workspace` and `move_to_adjacent_workspace` pick the next workspace with several monitors:
+#   "monitor"  workspaces of the focused monitor only, wrapping around (like Hyprland's m+1)
+#   "spatial"  workspaces of the focused monitor by number; past its last (or first) one, the active workspace
+#              of the nearest monitor on that side, monitors being placed by their position in the layout.
+#              Stops at the outermost monitor.
+#   "global"   every workspace by number, whatever its monitor, wrapping around (like Hyprland's e+1)
+[workspaces]
+navigation = "monitor"
+
 [bindings]
 # tap = { exec = "fuzzel" }
 double_tap = { wheel = "main" }
 # hold = "toggle_floating"
 
 [bindings.swipe]
-left = { workspace = "e-1" }
-right = { workspace = "e+1" }
+left = { adjacent_workspace = "left" }
+right = { adjacent_workspace = "right" }
 up = "maximize"
 down = { toggle_special = "magic" }
 
@@ -38,7 +48,7 @@ action = "close_window"
 [[wheel.main.slots]]
 label = "Move →"
 icon = "go-next"
-action = { move_to_workspace = "e+1" }
+action = { move_to_adjacent_workspace = "right" }
 
 [[wheel.main.slots]]
 label = "Float"
@@ -58,7 +68,7 @@ action = { move_to_workspace = "special:magic" }
 [[wheel.main.slots]]
 label = "Move ←"
 icon = "go-previous"
-action = { move_to_workspace = "e-1" }
+action = { move_to_adjacent_workspace = "left" }
 
 # Look of the wheel; sizes are logical pixels, colours #rrggbb or #rrggbbaa.
 [style]

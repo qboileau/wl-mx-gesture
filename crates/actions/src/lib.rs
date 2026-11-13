@@ -7,6 +7,7 @@ use std::thread;
 
 use log::warn;
 use wlmg_core::action::Action;
+use wlmg_core::workspace::Navigation;
 
 use hyprland::Hyprland;
 
@@ -22,19 +23,30 @@ pub enum Error {
     HyprlandIo(#[from] io::Error),
     #[error("Hyprland rejected `dispatch {dispatch}`: {reply}")]
     HyprlandRejected { dispatch: String, reply: String },
+    #[error("unexpected Hyprland `{request}` reply: {source}")]
+    HyprlandReply { request: &'static str, source: serde_json::Error },
+    #[error("Hyprland reports no focused monitor")]
+    NoFocusedMonitor,
 }
 
-#[derive(Default)]
 pub struct Runner {
     hyprland: Option<Hyprland>,
+    navigation: Navigation,
 }
 
 impl Runner {
+    pub fn new(navigation: Navigation) -> Self {
+        Self { hyprland: None, navigation }
+    }
+
     pub fn run(&mut self, action: &Action) -> Result<(), Error> {
         match action {
             Action::Exec(command) => exec(command),
             Action::Hyprland(args) => self.hyprland()?.dispatch(args),
-            Action::Compositor(action) => self.hyprland()?.perform(action),
+            Action::Compositor(action) => {
+                let navigation = self.navigation;
+                self.hyprland()?.perform(action, navigation)
+            }
         }
     }
 

@@ -7,12 +7,14 @@ use crate::action::Action;
 use crate::geometry::Direction;
 use crate::gesture::{self, Gesture, Outcome, Output, Timed, Trigger};
 use crate::style::Style;
+use crate::workspace::Navigation;
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Profile {
     pub gesture: GestureSettings,
     pub bindings: Bindings,
     pub style: Style,
+    pub navigation: Navigation,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

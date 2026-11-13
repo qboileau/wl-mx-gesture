@@ -6,3 +6,4 @@ pub mod geometry;
 pub mod gesture;
 pub mod profile;
 pub mod style;
+pub mod workspace;

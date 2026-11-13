@@ -7,7 +7,8 @@ on any Wayland compositor.
 - **Wheel**: double tap (default) or hold still to open a wheel of actions around the cursor; keep the button pressed,
   move towards a slot and release to run it (release in the centre to cancel).
 - **Actions**: workspace switching, moving/closing/floating/fullscreen windows, special workspaces, shell commands,
-  or raw Hyprland dispatches. Hyprland's legacy and Lua (0.55+) IPC syntaxes are auto-detected.
+  or raw Hyprland dispatches. Left/right workspace moves follow your monitor layout (configurable with
+  `[workspaces] navigation`). Hyprland's legacy and Lua (0.55+) IPC syntaxes are auto-detected.
 
 The button is read directly over Logitech's HID++ protocol (`/dev/hidraw*`), through a Bolt receiver or
 Bluetooth, so no compositor support is needed for input. While the button is held the cursor stays frozen and the

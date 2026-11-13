@@ -8,6 +8,7 @@ use serde::Deserialize;
 use crate::action::Action;
 use crate::profile::{Binding, Bindings, GestureSettings, Profile, Slot, SwipeBindings, Wheel};
 use crate::style::Style;
+use crate::workspace::Navigation;
 
 const DEFAULT_SWIPE_THRESHOLD: f32 = 60.0;
 const DEFAULT_DEAD_ZONE: f32 = 40.0;
@@ -29,11 +30,12 @@ pub enum ConfigError {
 }
 
 pub fn parse(source: &str) -> Result<Profile, ConfigError> {
-    let RawConfig { gesture, bindings, wheel: wheels, style } = toml::from_str(source)?;
+    let RawConfig { gesture, bindings, wheel: wheels, style, workspaces } = toml::from_str(source)?;
     let resolve = |binding: Option<RawBinding>, key| binding.map(|binding| binding.resolve(&wheels, key)).transpose();
     Ok(Profile {
         gesture: gesture.validate()?,
         style: validate_style(style)?,
+        navigation: workspaces.navigation,
         bindings: Bindings {
             tap: bindings.tap,
             double_tap: resolve(bindings.double_tap, "double_tap")?,
@@ -54,6 +56,14 @@ struct RawConfig {
     wheel: HashMap<String, RawWheel>,
     #[serde(default)]
     style: Style,
+    #[serde(default)]
+    workspaces: RawWorkspaces,
+}
+
+#[derive(Default, Deserialize)]
+#[serde(default, deny_unknown_fields)]
+struct RawWorkspaces {
+    navigation: Navigation,
 }
 
 #[derive(Deserialize)]
@@ -243,6 +253,19 @@ mod tests {
             profile.action_for(Output::WheelSelected(Trigger::DoubleTap, 0)),
             Some(&Action::Compositor(CompositorAction::Fullscreen))
         );
+    }
+
+    #[test]
+    fn workspace_navigation_defaults_to_monitor() {
+        use crate::workspace::Side;
+        let profile = parse("[bindings.swipe]\nright = { move_to_adjacent_workspace = \"right\" }").unwrap();
+        assert_eq!(profile.navigation, Navigation::Monitor);
+        assert_eq!(
+            profile.bindings.swipe.right,
+            Some(Action::Compositor(CompositorAction::MoveToAdjacentWorkspace(Side::Right)))
+        );
+        assert_eq!(parse("[workspaces]\nnavigation = \"spatial\"").unwrap().navigation, Navigation::Spatial);
+        assert!(parse("[workspaces]\nnavigation = \"nearest\"").is_err());
     }
 
     #[test]

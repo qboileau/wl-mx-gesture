@@ -1,11 +1,14 @@
 use serde::Deserialize;
 
+use crate::workspace::Side;
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(
     rename_all = "snake_case",
     deny_unknown_fields,
     expecting = "an action: `{ exec = \"…\" }`, `{ hyprland = \"…\" }`, `{ workspace = \"…\" }`, \
-                 `{ move_to_workspace = \"…\" }`, `{ toggle_special = \"…\" }`, \"close_window\", \
+                 `{ move_to_workspace = \"…\" }`, `{ adjacent_workspace = \"left|right\" }`, \
+                 `{ move_to_adjacent_workspace = \"left|right\" }`, `{ toggle_special = \"…\" }`, \"close_window\", \
                  \"toggle_floating\", \"fullscreen\" or \"maximize\""
 )]
 pub enum Action {
@@ -25,6 +28,10 @@ pub enum CompositorAction {
     Workspace(String),
     /// Moves the focused window to a workspace and follows it.
     MoveToWorkspace(String),
+    /// Workspace beside the current one, following the configured multi-monitor navigation.
+    AdjacentWorkspace(Side),
+    /// Moves the focused window to the adjacent workspace and follows it.
+    MoveToAdjacentWorkspace(Side),
     ToggleSpecial(String),
     CloseWindow,
     ToggleFloating,

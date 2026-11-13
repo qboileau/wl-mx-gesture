@@ -82,7 +82,7 @@ fn listen(profile: &Profile, mut see: impl FnMut(Seen)) -> Result<()> {
 fn run() -> Result<()> {
     let profile = load_profile()?;
     let overlay = start_overlay(&profile);
-    let mut runner = Runner::default();
+    let mut runner = Runner::new(profile.navigation);
     listen(&profile, |seen| match seen {
         Seen::Event(Event::Ready(device)) => info!("{device}: gesture button diverted"),
         Seen::Event(Event::Lost(device)) => info!("{device}: disconnected"),
